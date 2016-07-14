@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from bottle import Bottle, run
 from bottle import template
 
@@ -5,6 +6,7 @@ from bottle import request,  static_file
 import wikipedia
 import requests
 from bs4 import BeautifulSoup
+import sys
 wikipedia.set_lang("fr")
 app = Bottle()
 
@@ -14,7 +16,7 @@ def scrappingWP():
 	url = 'https://fr.wikipedia.org/wiki/Palmar%C3%A8s_du_Tour_de_France'
 	# Scrape the HTML at the url
 	r = requests.get(url)
-	
+
 
 	# Turn the HTML into a Beautiful Soup object
 	soup = BeautifulSoup(r.text, 'lxml')
@@ -27,7 +29,7 @@ def scrappingWP():
 @app.route("/credits")
 def display_credits():
 	return template('static/templated-retrospect/credits.tpl')
-	
+
 
 
 @app.route('/static/:path#.+#', name='static')
@@ -75,7 +77,7 @@ def do_tdf():
 	table = scrappingWP()
 
 	for single in table.find_all('tr')[1:]:
-		
+
 		col = single.find_all('td')
 		column_1 = col[0]
 		col1=column_1.text.split(" ")
@@ -86,7 +88,7 @@ def do_tdf():
 
 		if year==anneecol:
 			htm=''
-			
+
 			if 'non attribu' in yellow:
 				htmYellow=htmYellow+"<h1>En {0} </h1><p>Le maillot jaune n'a pas été attribué cette année là.</p><p>Les titres de Lance Armstrong gagné entre 1999 et 2005 ont été révoqués par l'UCI le 22 octobre 2012 pour dopage.</p>".format(year)
 			else:
@@ -142,4 +144,4 @@ def do_tdf():
 	return "Vous êtes né en ", year
 
 
-run(app, host='localhost', port=8080)
+run(app, host='0.0.0.0', port=sys.argv[1])
