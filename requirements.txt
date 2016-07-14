@@ -1,0 +1,4 @@
+bottle
+requests
+bs4
+wikipedia
