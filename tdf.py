@@ -35,10 +35,6 @@ def static(path):
     return static_file(path, root='static')
 
 
-#@app.route('/')
-#@app.route('/hello/<name>')
-#def greet(name='Stranger'):
-#    return template('Hello {{name}}, how are you?', name=name)
 
 @app.get('/')
 def tdf():
@@ -58,7 +54,6 @@ def tdf():
 		mountain=col[6]
 		green=col[7]
 		htmopt='<option value="{0}">{1}</option>'.format(anneecol,anneecol)
-		#htm=htm+'<option value="1906">1906</option>'
 		htm=htm+htmopt
 	htm=htm+'''</select></div>
 
@@ -68,7 +63,6 @@ def tdf():
 <p>Votre année de naissance n'est pas dans la liste&nbsp;? C'est qu'il n'y a pas eu de Tour de France cette année là. Désolé.</p>
     '''
 
-	#return template('page.tpl', title="Le Tour de votre naissance", body=htm)
 	return template('static/templated-retrospect/index.tpl', title="Le Tour de votre naissance", body=htm)
 
 
@@ -78,7 +72,6 @@ def do_tdf():
 	htmYellow=''
 	htmMountain=''
 	htmGreen=''
-	# Create an object of the first object that is class=dataframe
 	table = scrappingWP()
 
 	for single in table.find_all('tr')[1:]:
