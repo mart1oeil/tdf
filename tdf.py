@@ -1,147 +1,166 @@
 # -*- encoding: utf-8 -*-
-from bottle import Bottle, run
-from bottle import template
 
-from bottle import request,  static_file
-import wikipedia
+'''
+this module is used to make a web site
+to give information about the Tour de France
+of your birth year
+'''
+import sys
 import requests
 from bs4 import BeautifulSoup
-import sys
+import wikipedia
+from bottle import Bottle, run
+from bottle import template
+from bottle import request, static_file
+
 wikipedia.set_lang("fr")
-app = Bottle()
+APP = Bottle()
 
-
-
-def scrappingWP():
+def scrapping_wp():
+	'''
+	This function is scrapping the wikipedia page
+	of le Tour de France
+	where the palmares is.
+	'''
 	url = 'https://fr.wikipedia.org/wiki/Palmar%C3%A8s_du_Tour_de_France'
 	# Scrape the HTML at the url
-	r = requests.get(url)
+	req = requests.get(url)
 
 
 	# Turn the HTML into a Beautiful Soup object
-	soup = BeautifulSoup(r.text, 'lxml')
+	soup = BeautifulSoup(req.text, 'lxml')
 	# Create an object of the first object that is class=dataframe
 	table = soup.find(class_='wikitable sortable')
 
 	return table
 
-
-@app.route("/credits")
+@APP.route("/credits")
 def display_credits():
+	'''
+	display the credits page with the good template
+	'''
 	return template('static/templated-retrospect/credits.tpl')
 
-
-
-@app.route('/static/:path#.+#', name='static')
+@APP.route('/static/:path#.+#', name='static')
 def static(path):
-    return static_file(path, root='static')
+	'''
+	return the static file
+	'''
+	return static_file(path, root='static')
 
 
-
-@app.get('/')
+@APP.get('/')
 def tdf():
-	htm='''
-<form value="form" action="/" method="post">
-  <div id='container'>
-  <label for="year">Renseignez l'année de votre naissance</label>
-  <p><select  name="year" id="year">'''
-
-	table=scrappingWP()
+	'''
+	principal app to launch tdf
+	'''
+	htm = '''
+	<form value="form" action="/" method="post">
+	<div id='container'>
+	<label for="year">Renseignez l'année de votre naissance</label>
+	<p><select  name="year" id="year">'''
+	table = scrapping_wp()
 	for single in table.find_all('tr')[1:]:
 		col = single.find_all('td')
 		column_1 = col[0]
-		col1=column_1.text.split(" ")
-		anneecol=col1[0]
-		yellow=col[1].text
-		mountain=col[6]
-		green=col[7]
-		htmopt='<option value="{0}">{1}</option>'.format(anneecol,anneecol)
-		htm=htm+htmopt
-	htm=htm+'''</select></div>
-
-  <input type="submit" value="Envoyer" class="button big special">
-
+		col1 = column_1.text.split(" ")
+		anneecol = col1[0]
+		htmopt = '<option value="{0}">{1}</option>'.format(anneecol, anneecol)
+		htm = htm + htmopt
+	htm = htm + ('''</select></div>
+	<input type="submit" value="Envoyer"''' +
+              ''' class="button big special">
 </form>
-<p>Votre année de naissance n'est pas dans la liste&nbsp;? C'est qu'il n'y a pas eu de Tour de France cette année là. Désolé.</p>
-    '''
+<p>Votre année de naissance n'est pas dans la liste&nbsp;?''' +
+              '''C'est qu'il n'y a pas eu de Tour de France cette année là. Désolé.</p>''')
 
-	return template('static/templated-retrospect/index.tpl', title="Le Tour de votre naissance", body=htm)
+	return template('static/templated-retrospect/index.tpl',
+                 title="Le Tour de votre naissance", body=htm)
 
 
-@app.post('/')
+@APP.post('/')
 def do_tdf():
+	'''
+	create the tdf app
+	'''
 	year = request.forms.get('year')
-	htmYellow=''
-	htmMountain=''
-	htmGreen=''
-	table = scrappingWP()
+	htm_yellow = ''
+	htm_mountain = ''
+	htm_green = ''
+	table = scrapping_wp()
 
 	for single in table.find_all('tr')[1:]:
 
 		col = single.find_all('td')
-		column_1 = col[0]
-		col1=column_1.text.split(" ")
-		anneecol=col1[0]
-		yellow=col[1].text
-		mountain=col[6].text
-		green=col[7].text
+		col1 = col[0]
+		col1 = col1.text.split(" ")
+		anneecol = col1[0]
+		yellow = col[1].text
+		mountain = col[8].text
+		green = col[9].text
 
-		if year==anneecol:
-			htm=''
+		if year == anneecol:
 
 			if 'non attribu' in yellow:
-				htmYellow=htmYellow+"<h1>En {0} </h1><p>Le maillot jaune n'a pas été attribué cette année là.</p><p>Les titres de Lance Armstrong gagné entre 1999 et 2005 ont été révoqués par l'UCI le 22 octobre 2012 pour dopage.</p>".format(year)
+				htm_yellow = (htm_yellow +
+				              "<h1>En {0} </h1><p>".format(year) +
+				              "Le maillot jaune n'a pas été attribué cette année là.</p>" +
+				              "<p>Les titres de Lance Armstrong gagné entre 1999 et 2005" +
+				              " ont été révoqués par l'UCI le 22 octobre 2012 pour dopage.</p>")
 			else:
-				try:
-					vainqueurWP = wikipedia.page(yellow)
-					vainqueur=vainqueurWP.title
-					sentence=wikipedia.summary(vainqueur, sentences=2)
-				except wikipedia.exceptions.DisambiguationError:
-					vainqueurWP = wikipedia.page(yellow+' cyclisme')
-					vainqueur=vainqueurWP.title
-					sentence=wikipedia.summary(vainqueur, sentences=2)
-				except:
-					sentence="Pas de fiche WP"
+				sentence = wiki_request(yellow)
 
-				htmYellow=htmYellow+"<h1>En {0} </h1><h2>le vainqueur du tour était {1}.</h2><p>{2}</p>".format(year,yellow,sentence)
+				htm_yellow = (htm_yellow +
+				              "<h1>En {0} </h1><h2>le vainqueur du tour était {1}.</h2><p>{2}</p>".
+							           format(year, yellow, sentence))
 
-			if 'non attribu' in mountain or mountain=='':
-				htmMountain=htmMountain+"<p>Le grand prix de la Montagne n'a pas été attribué cette année là.</p>".format(year)
+			if 'non attribu' in mountain or mountain == '':
+				htm_mountain = (htm_mountain +
+	 			               "<p>Le grand prix de la Montagne n'a pas été attribué cette année là.</p>")
 			else:
-				try:
-					mountainWP = wikipedia.page(mountain)
-					montagne=mountainWP.title
-					sentence=wikipedia.summary(montagne, sentences=2)
-				except wikipedia.exceptions.DisambiguationError:
-					mountainWP = wikipedia.page(mountain+' cyclisme')
-					montagne=mountainWP.title
-					sentence=wikipedia.summary(montagne, sentences=2)
-				except:
-					sentence="Pas de fiche WP"
-				htmMountain=htmMountain+"<h2>Le meilleur grimpeur était {0}.</h2><p>{1}</p>".format(mountain,sentence)
+				sentence = wiki_request(mountain)
+				htm_mountain = (htm_mountain +
+ 				               "<h2>Le meilleur grimpeur était {0}.</h2><p>{1}</p>".
+ 				               format(mountain, sentence))
 
-			if 'non attribu' in green or green=='':
-				htmGreen=htmGreen+"<p>Le prix du meilleur sprinter n'a pas été attribué cette année là.</p>"
+			if 'non attribu' in green or green == '':
+				htm_green = (htm_green +
+                 "<p>Le prix du meilleur sprinter n'a pas été" +
+                 " attribué cette année là.</p>")
 			else:
-				try:
-					greenWP = wikipedia.page(green)
-					vert=greenWP.title
-					sentence=wikipedia.summary(vert, sentences=2)
-				except wikipedia.exceptions.DisambiguationError:
-					greenWP = wikipedia.page(green+' cyclisme')
-					vert=greenWP.title
-					sentence=wikipedia.summary(vert, sentences=2)
-				except:
-					sentence="Pas de fiche WP"
+				sentence = wiki_request(green)
 
-				htmGreen=htmGreen+"<h2>Le meilleur sprinter était {0}.</h2><p>{1}</p>".format(green,sentence)
+				htm_green = (htm_green +
+				             "<h2>Le meilleur sprinter était {0}.</h2><p>{1}</p>".
+				         	   format(green, sentence))
 
-
-			title="Le Tour de votre naissance: {0}".format(year)
-			return template('static/templated-retrospect/result.tpl',title=title,bodyYellow=htmYellow,bodyMountain=htmMountain, bodyGreen=htmGreen)
+			title = "Le Tour de votre naissance: {0}".format(year)
+			return template('static/templated-retrospect/result.tpl',
+			                title=title, bodyYellow=htm_yellow,
+			                bodyMountain=htm_mountain,
+			                bodyGreen=htm_green)
 
 
 	return "Vous êtes né en ", year
 
+def wiki_request(name):
+	'''
+	This method will return the 2 first sentences of the wikipedia page
+	of the given name
+	'''
+	try:
+		name_wpp = wikipedia.page(name)
+		name_wpp = name_wpp.title
+		sentence = wikipedia.summary(name_wpp, sentences=2)
+	except wikipedia.exceptions.DisambiguationError:
+		name_wpp = wikipedia.page(name + ' cyclisme')
+		name_wpp = name_wpp.title
+		sentence = wikipedia.summary(name_wpp, sentences=2)
+	except wikipedia.exceptions.PageError:
+		sentence = "Pas de fiche WP"
+	return sentence
 
-run(app, host='0.0.0.0', port=sys.argv[1])
+
+
+run(APP, host='0.0.0.0', port=sys.argv[1])
+#run(APP, host='0.0.0.0')
