@@ -6,3 +6,9 @@ virtualenv venv -p python3
 source venv/bin/activate
 pip install -r requirements.txt
 python tdf.py 8080
+
+
+Deployed here 
+=======
+
+http://tdf.mart1oeil.eu/
